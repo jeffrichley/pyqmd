@@ -1,0 +1,60 @@
+site_name: pyqmd
+site_url: https://jeffrichley.github.io/pyqmd
+site_description: Python-native local search engine for markdown files. Hybrid BM25 + vector search with reranking.
+repo_url: https://github.com/jeffrichley/pyqmd
+repo_name: jeffrichley/pyqmd
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  palette:
+    scheme: iris
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/iris.css
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+  - Guide:
+    - Collections: guide/collections.md
+    - Indexing: guide/indexing.md
+    - Searching: guide/searching.md
+    - Configuration: guide/configuration.md
+  - CLI Reference: cli.md
+  - Python API: api.md
+  - Architecture: architecture.md
