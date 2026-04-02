@@ -45,16 +45,24 @@ class SilentObserver:
 
 
 class RichProgressObserver:
-    """Observer that renders Rich progress bars."""
+    """Observer that renders Rich progress bars.
+
+    Each on_start/on_complete cycle shows a single progress bar that
+    disappears when done, replaced by a one-line summary.
+    """
 
     def __init__(self):
         from rich.console import Console
+        self._console = Console()
+        self._progress = None
+        self._task_id = None
+
+    def _make_progress(self):
         from rich.progress import (
             Progress, SpinnerColumn, TextColumn, BarColumn,
             MofNCompleteColumn, TimeElapsedColumn, TimeRemainingColumn,
         )
-        self._console = Console()
-        self._progress = Progress(
+        return Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             BarColumn(bar_width=40),
@@ -63,20 +71,24 @@ class RichProgressObserver:
             TimeElapsedColumn(),
             TimeRemainingColumn(),
             console=self._console,
+            transient=True,  # progress bar disappears when done
         )
-        self._task_id = None
 
     def on_start(self, operation: str, total: int) -> None:
+        self._progress = self._make_progress()
         self._progress.start()
         self._task_id = self._progress.add_task(operation, total=total)
 
     def on_advance(self, count: int = 1) -> None:
-        if self._task_id is not None:
+        if self._task_id is not None and self._progress is not None:
             self._progress.advance(self._task_id, count)
 
     def on_message(self, message: str) -> None:
         self._console.print(message)
 
     def on_complete(self, operation: str, total: int) -> None:
-        if self._progress.live.is_started:
+        if self._progress is not None and self._progress.live.is_started:
             self._progress.stop()
+        self._console.print(f"  [green]{operation}[/green] — {total}")
+        self._progress = None
+        self._task_id = None
