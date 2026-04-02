@@ -76,10 +76,16 @@ class IndexingPipeline:
             return 0
 
         # Filter to files that need indexing
-        if not force:
+        if force:
+            # Drop the entire collection and rebuild — much faster than per-file deletes
+            self.storage.delete_collection(collection)
+        else:
             files = [f for f in files if self.hasher.has_changed(f)]
             if not files:
                 return 0
+            # Only delete changed files
+            for f in files:
+                self.storage.delete_by_source_file(collection, str(f))
 
         # Phase 1: Chunk all files
         self.observer.on_start(f"Chunking {collection}", total=len(files))
@@ -88,7 +94,6 @@ class IndexingPipeline:
         file_boundaries = []  # (file_path, start_idx, end_idx) for hash tracking
 
         for path in files:
-            self.storage.delete_by_source_file(collection, str(path))
             chunks = self.chunker.chunk_file(path, collection=collection)
 
             if self.context_generator and chunks:
