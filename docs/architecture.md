@@ -62,3 +62,25 @@ pyqmd runs BM25 (keyword) and vector (semantic) search in parallel, then merges 
 ## Incremental Indexing
 
 File content hashes (SHA-256) are tracked. On re-index, only changed files are reprocessed. This makes re-indexing fast even for large collections.
+
+## Batched Indexing Pipeline
+
+When indexing a directory, pyqmd uses a 3-phase batched approach rather than processing files one at a time:
+
+1. **Chunk** — all files are chunked up front into a single flat list.
+2. **Embed** — all chunk texts are embedded in batches of 512, maximising GPU/CPU utilisation.
+3. **Store** — chunks and vectors are written to LanceDB in file-aligned batches; hashes are recorded.
+
+With `--force`, the entire LanceDB collection is dropped once before rebuilding, which is faster than issuing per-file deletes.
+
+## Progress Observer Pattern
+
+Progress reporting is separated from pipeline logic via the `ProgressObserver` protocol in `pyqmd.progress`. The pipeline emits four events per phase (`on_start`, `on_advance`, `on_message`, `on_complete`) to whatever observer is passed in.
+
+Three implementations ship out of the box:
+
+| Class | Behaviour |
+|---|---|
+| `SilentObserver` | Default — does nothing (suitable for tests and library use) |
+| `RichProgressObserver` | Renders animated Rich progress bars (used by the CLI) |
+| Custom | Implement the `ProgressObserver` protocol for logging, JSON output, etc. |

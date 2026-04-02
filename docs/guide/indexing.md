@@ -69,6 +69,34 @@ Context generation adds roughly 1 second per chunk depending on your hardware. F
 qmd.index("my-notes", contextual=True)
 ```
 
+## Batched Embedding Pipeline
+
+When indexing a directory, pyqmd runs a 3-phase batched pipeline that is 3–5x faster than the old per-file approach:
+
+**Phase 1 — Chunking:** All files are read and chunked up front (fast, CPU only). The chunker visits every file in the collection before any embedding work starts.
+
+**Phase 2 — Embedding:** All chunks are embedded in large batches of 512 at a time. Batching keeps the GPU (or CPU) saturated and avoids the overhead of repeated model warm-up between files.
+
+**Phase 3 — Storing:** Chunks and vectors are written to LanceDB and file hashes are recorded, aligned to file boundaries so a failed run can be diagnosed cleanly.
+
+### Progress output
+
+When using the CLI, you will see three progress bars, one per phase:
+
+```
+Chunking my-notes       ████████████████████ 42/42   100%  0:00:01
+Embedding my-notes      ████████████████████  5/5    100%  0:00:08
+Storing my-notes        ████████████████████ 42/42   100%  0:00:00
+```
+
+### `--force` optimization
+
+When `--force` (or `--full`) is passed, pyqmd drops the entire LanceDB collection in one operation before rebuilding, rather than issuing a separate delete for every changed file. This is significantly faster for large collections.
+
+```bash
+qmd index my-notes --full   # drops collection, rebuilds from scratch
+```
+
 ## YAML Frontmatter
 
 Frontmatter is parsed and attached as metadata to every chunk from that file:

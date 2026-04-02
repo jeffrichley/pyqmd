@@ -24,9 +24,16 @@ Remove a collection and its indexed data.
 
 List all registered collection names.
 
-#### `index(name=None, force=False) -> int`
+#### `index(name=None, force=False, observer=None) -> int`
 
 Index a collection (or all if name is None). Returns the number of chunks indexed.
+
+Pass a `ProgressObserver` to receive progress events:
+
+```python
+from pyqmd.progress import RichProgressObserver
+qmd.index("collection", observer=RichProgressObserver())
+```
 
 #### `search(query, collections=None, top_k=10, rerank=False, expand_parents=False) -> list[SearchResult]`
 
@@ -63,6 +70,68 @@ class Chunk:
     start_line: int
     end_line: int
     metadata: dict
+```
+
+## ProgressObserver
+
+A `Protocol` that defines the interface for progress reporting. Implement this to receive events from the indexing pipeline.
+
+```python
+from pyqmd.progress import ProgressObserver
+
+class ProgressObserver(Protocol):
+    def on_start(self, operation: str, total: int) -> None: ...
+    def on_advance(self, count: int = 1) -> None: ...
+    def on_message(self, message: str) -> None: ...
+    def on_complete(self, operation: str, total: int) -> None: ...
+```
+
+The pipeline emits one `on_start` / `on_complete` pair and one `on_advance` call per unit of work for each of the three phases (chunking, embedding, storing).
+
+## SilentObserver
+
+The default observer. All methods are no-ops. Safe to use in tests and library contexts where no progress output is wanted.
+
+```python
+from pyqmd.progress import SilentObserver
+
+qmd.index("collection", observer=SilentObserver())
+```
+
+## RichProgressObserver
+
+Renders animated Rich progress bars in the terminal. Used by the CLI for all `qmd index` calls.
+
+```python
+from pyqmd.progress import RichProgressObserver
+
+qmd.index("collection", observer=RichProgressObserver())
+```
+
+Each indexing run shows three progress bars — one for chunking, one for embedding, and one for storing — each with a spinner, bar, count, percentage, elapsed time, and ETA.
+
+### Custom observers
+
+Implement the `ProgressObserver` protocol to route progress events anywhere:
+
+```python
+import logging
+from pyqmd.progress import ProgressObserver
+
+class LoggingObserver:
+    def on_start(self, operation: str, total: int) -> None:
+        logging.info("start %s total=%d", operation, total)
+
+    def on_advance(self, count: int = 1) -> None:
+        pass  # too noisy to log every step
+
+    def on_message(self, message: str) -> None:
+        logging.info(message)
+
+    def on_complete(self, operation: str, total: int) -> None:
+        logging.info("done %s total=%d", operation, total)
+
+qmd.index("collection", observer=LoggingObserver())
 ```
 
 ## OllamaContextGenerator
