@@ -6,6 +6,7 @@ from typing import Optional
 from pyqmd.chunking.markdown import MarkdownChunker
 from pyqmd.embeddings.base import EmbeddingModel
 from pyqmd.indexing.hasher import FileHashRegistry
+from pyqmd.progress import ProgressObserver, SilentObserver
 from pyqmd.storage.base import StorageBackend
 
 
@@ -17,12 +18,14 @@ class IndexingPipeline:
         chunker: MarkdownChunker,
         hasher: FileHashRegistry,
         context_generator: Optional["OllamaContextGenerator"] = None,
+        observer: ProgressObserver | None = None,
     ):
         self.storage = storage
         self.embedder = embedder
         self.chunker = chunker
         self.hasher = hasher
         self.context_generator = context_generator
+        self.observer = observer or SilentObserver()
 
     def index_file(self, path: pathlib.Path, collection: str, force: bool = False) -> int:
         if not force and not self.hasher.has_changed(path):
@@ -53,10 +56,15 @@ class IndexingPipeline:
         mask: str = "**/*.md",
         force: bool = False,
     ) -> int:
-        files = sorted(directory.glob(mask))
+        files = [f for f in sorted(directory.glob(mask)) if f.is_file()]
+        if not files:
+            return 0
+
+        self.observer.on_start(f"Indexing {collection}", total=len(files))
         total = 0
         for path in files:
-            if path.is_file():
-                count = self.index_file(path, collection=collection, force=force)
-                total += count
+            count = self.index_file(path, collection=collection, force=force)
+            total += count
+            self.observer.on_advance()
+        self.observer.on_complete(f"Indexing {collection}", total=total)
         return total

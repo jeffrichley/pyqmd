@@ -40,7 +40,7 @@ class PyQMD:
         self._context_generator = None
         self._hyde_generator = None
 
-    def _get_indexing_pipeline(self, collection_name: str, contextual: bool = False) -> IndexingPipeline:
+    def _get_indexing_pipeline(self, collection_name: str, contextual: bool = False, observer=None) -> IndexingPipeline:
         """Create an IndexingPipeline configured for the given collection."""
         col = self.config.collections.get(collection_name)
         if col is None:
@@ -58,6 +58,7 @@ class PyQMD:
             chunker=chunker,
             hasher=hasher,
             context_generator=context_gen,
+            observer=observer,
         )
 
     def _get_reranker(self):
@@ -133,6 +134,7 @@ class PyQMD:
         collection_name: str | None = None,
         force: bool = False,
         contextual: bool = False,
+        observer=None,
     ) -> int:
         """Index one or all collections.
 
@@ -145,19 +147,19 @@ class PyQMD:
             Total number of chunks indexed.
         """
         if collection_name is not None:
-            return self._index_one(collection_name, force=force, contextual=contextual)
+            return self._index_one(collection_name, force=force, contextual=contextual, observer=observer)
         total = 0
         for name in self.config.collections:
-            total += self._index_one(name, force=force, contextual=contextual)
+            total += self._index_one(name, force=force, contextual=contextual, observer=observer)
         return total
 
-    def _index_one(self, collection_name: str, force: bool = False, contextual: bool = False) -> int:
+    def _index_one(self, collection_name: str, force: bool = False, contextual: bool = False, observer=None) -> int:
         """Index a single collection."""
         col = self.config.collections.get(collection_name)
         if col is None:
             raise KeyError(f"Collection '{collection_name}' not found")
 
-        pipeline = self._get_indexing_pipeline(collection_name, contextual=contextual)
+        pipeline = self._get_indexing_pipeline(collection_name, contextual=contextual, observer=observer)
         total = 0
         for path_str in col.paths:
             directory = pathlib.Path(path_str)
