@@ -15,6 +15,9 @@ app = typer.Typer(
     help="pyqmd: Python-native local search engine for markdown files.",
     add_completion=False,
 )
+graph_app = typer.Typer(help="Knowledge graph commands (GraphRAG).")
+app.add_typer(graph_app, name="graph")
+
 console = Console()
 err_console = Console(stderr=True)
 
@@ -194,6 +197,105 @@ def show_config(
         console.print(f"[bold]Chunk overlap:[/bold] {info['chunk_overlap']}")
         console.print(f"[bold]Storage:[/bold] {info['storage_backend']}")
         console.print(f"[bold]Collections:[/bold] {', '.join(info['collections']) or '(none)'}")
+
+
+# ── Graph commands ────────────────────────────────────────────
+
+
+def _get_graph_engine(data_dir: str, best_model: str = "qwen3:14b", cheap_model: str = "llama3.2"):
+    from pyqmd.graph.engine import GraphEngine
+    return GraphEngine(
+        data_dir=pathlib.Path(data_dir).expanduser(),
+        best_model=best_model,
+        cheap_model=cheap_model,
+    )
+
+
+@graph_app.command("build")
+def graph_build(
+    directory: Annotated[Optional[str], typer.Argument(help="Directory of markdown files to index. Omit to use all collections.")] = None,
+    collection: Annotated[Optional[str], typer.Option("--collection", "-c", help="Collection name to build graph from")] = None,
+    best_model: Annotated[str, typer.Option("--best-model", help="Ollama model for entity extraction")] = "qwen3:14b",
+    cheap_model: Annotated[str, typer.Option("--cheap-model", help="Ollama model for summaries")] = "llama3.2",
+    data_dir: Annotated[str, typer.Option("--data-dir", help="Data directory")] = _DEFAULT_DATA_DIR,
+) -> None:
+    """Build knowledge graph from markdown files via entity extraction."""
+    engine = _get_graph_engine(data_dir, best_model, cheap_model)
+
+    if directory:
+        count = engine.build_from_directory(pathlib.Path(directory))
+        console.print(f"[green]Graph built from {count} files.[/green]")
+    elif collection:
+        qmd = _get_qmd(data_dir)
+        col = qmd.config.collections.get(collection)
+        if not col:
+            err_console.print(f"[red]Collection '{collection}' not found.[/red]")
+            raise typer.Exit(1)
+        total = 0
+        for p in col.paths:
+            count = engine.build_from_directory(pathlib.Path(p), mask=col.mask)
+            total += count
+        console.print(f"[green]Graph built from {total} files in collection '{collection}'.[/green]")
+    else:
+        # Build from all collections
+        qmd = _get_qmd(data_dir)
+        total = 0
+        for name, col in qmd.config.collections.items():
+            console.print(f"[bold]Building from {name}...[/bold]")
+            for p in col.paths:
+                count = engine.build_from_directory(pathlib.Path(p), mask=col.mask)
+                total += count
+        console.print(f"[green]Graph built from {total} files across all collections.[/green]")
+
+    info = engine.status()
+    console.print(f"  Entities: {info.get('entities', 0)}")
+    console.print(f"  Relationships: {info.get('relationships', 0)}")
+
+
+@graph_app.command("query")
+def graph_query(
+    query: Annotated[str, typer.Argument(help="Question to ask the knowledge graph")],
+    mode: Annotated[str, typer.Option("--mode", "-m", help="Query mode: local or global")] = "local",
+    best_model: Annotated[str, typer.Option("--best-model", help="Ollama model for queries")] = "qwen3:14b",
+    cheap_model: Annotated[str, typer.Option("--cheap-model", help="Ollama model for summaries")] = "llama3.2",
+    as_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
+    data_dir: Annotated[str, typer.Option("--data-dir", help="Data directory")] = _DEFAULT_DATA_DIR,
+) -> None:
+    """Query the knowledge graph."""
+    engine = _get_graph_engine(data_dir, best_model, cheap_model)
+
+    if not engine.is_built():
+        err_console.print("[red]Graph not built yet. Run: qmd graph build[/red]")
+        raise typer.Exit(1)
+
+    result = engine.query(query, mode=mode)
+
+    if as_json:
+        typer.echo(json.dumps({"query": query, "mode": mode, "answer": result}))
+    else:
+        console.print(f"\n[bold]Query:[/bold] {query}")
+        console.print(f"[dim]Mode: {mode}[/dim]\n")
+        console.print(result)
+
+
+@graph_app.command("status")
+def graph_status(
+    as_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
+    data_dir: Annotated[str, typer.Option("--data-dir", help="Data directory")] = _DEFAULT_DATA_DIR,
+) -> None:
+    """Show knowledge graph status."""
+    engine = _get_graph_engine(data_dir)
+    info = engine.status()
+
+    if as_json:
+        typer.echo(json.dumps(info))
+    else:
+        table = Table(title="Knowledge Graph Status")
+        table.add_column("Metric")
+        table.add_column("Value")
+        for k, v in info.items():
+            table.add_row(k, str(v))
+        console.print(table)
 
 
 def main() -> None:
