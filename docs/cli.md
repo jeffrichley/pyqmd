@@ -41,10 +41,18 @@ Show collection statistics.
 ### `qmd index`
 
 ```bash
-qmd index [name] [--full]
+qmd index [name] [--full] [--contextual]
 ```
 
 Index a collection (or all collections). Use `--full` to force re-index.
+
+| Option | Description |
+|--------|-------------|
+| `--full` | Force re-index all files (ignore hash cache) |
+| `--contextual` | Generate LLM context prefixes via Ollama before embedding |
+| `--data-dir` | Override data directory |
+
+`--contextual` calls a local Ollama model once per chunk to generate a 1–2 sentence context prefix. This improves retrieval by ~49% at the cost of ~1 second per chunk at index time. Requires Ollama with `qwen3.5:9b` (or another configured model).
 
 ## Searching
 
@@ -60,8 +68,53 @@ qmd search <query> [options]
 | `--top-k`, `-k` | Number of results (default: 10) |
 | `--no-rerank` | Skip cross-encoder reranking |
 | `--expand` | Include parent chunks |
+| `--hyde` | Use HyDE query expansion via Ollama |
 | `--json` | JSON output |
 | `--data-dir` | Override data directory |
+
+`--hyde` generates a hypothetical answer to the query using Ollama, then embeds that answer instead of the raw query. Improves recall for technical and domain-specific questions. Adds one Ollama call per search.
+
+## Knowledge Graph
+
+### `qmd graph build`
+
+```bash
+qmd graph build [directory] [--collection <name>] [--best-model <model>] [--cheap-model <model>]
+```
+
+Build a knowledge graph from markdown files via entity extraction.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `directory` | — | Directory of markdown files (omit to use all collections) |
+| `--collection`, `-c` | — | Build from a specific named collection |
+| `--best-model` | `qwen3:14b` | Ollama model for entity extraction |
+| `--cheap-model` | `llama3.2` | Ollama model for community summaries |
+| `--data-dir` | `~/.pyqmd` | Data directory |
+
+### `qmd graph query`
+
+```bash
+qmd graph query <question> [--mode local|global] [--best-model <model>] [--cheap-model <model>] [--json]
+```
+
+Query the knowledge graph. Returns a synthesized prose answer.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--mode`, `-m` | `local` | `local` for entity traversal, `global` for community summaries |
+| `--best-model` | `qwen3:14b` | Ollama model for query synthesis |
+| `--cheap-model` | `llama3.2` | Ollama model for summaries |
+| `--json` | — | Output as JSON |
+| `--data-dir` | `~/.pyqmd` | Data directory |
+
+### `qmd graph status`
+
+```bash
+qmd graph status [--json]
+```
+
+Show knowledge graph status: entity count, relationship count, storage path, and configured models.
 
 ## Configuration
 

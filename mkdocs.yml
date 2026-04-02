@@ -54,6 +54,7 @@ nav:
     - Collections: guide/collections.md
     - Indexing: guide/indexing.md
     - Searching: guide/searching.md
+    - GraphRAG: guide/graphrag.md
     - Configuration: guide/configuration.md
   - CLI Reference: cli.md
   - Python API: api.md

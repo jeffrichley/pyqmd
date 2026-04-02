@@ -5,14 +5,24 @@
 ```
 Markdown Files (source of truth)
     │
-    ▼
-┌──────────────────────────────┐
-│     Markdown-Aware Chunker   │
-│  (break-point scoring, no    │
-│   code block splits, YAML    │
-│   frontmatter extraction)    │
-└──────────────┬───────────────┘
-               │
+    ├──────────────────────────────────────────────────────────┐
+    │                                                          │
+    ▼                                                          ▼
+┌──────────────────────────────┐              ┌───────────────────────────────┐
+│     Markdown-Aware Chunker   │              │         GraphRAG Pipeline     │
+│  (break-point scoring, no    │              │  (nano-graphrag + Ollama)     │
+│   code block splits, YAML    │              │                               │
+│   frontmatter extraction)    │              │  Entity Extraction            │
+└──────────────┬───────────────┘              │  (qwen3:14b)                  │
+               │                              │      │                        │
+               ▼                              │      ▼                        │
+┌──────────────────────────────┐              │  Community Summaries          │
+│  Contextual Retrieval        │              │  (llama3.2)                   │
+│  (optional, --contextual)    │              │      │                        │
+│  Ollama generates 1-2 sent.  │              │      ▼                        │
+│  context prefix per chunk    │              │  Knowledge Graph on disk      │
+└──────────────┬───────────────┘              │  (.graphml)                   │
+               │                              └───────────────────────────────┘
                ▼
 ┌──────────────────────────────┐
 │      Embedding Layer         │
@@ -27,12 +37,18 @@ Markdown Files (source of truth)
 └──────────────┬───────────────┘
                │
                ▼
-┌──────────────────────────────┐
-│     Retrieval Pipeline       │
-│  BM25 + Vector → RRF Fusion │
-│  → Cross-Encoder Reranking  │
-│  → Parent Chunk Expansion   │
-└──────────────────────────────┘
+┌──────────────────────────────────────────┐
+│           Query Pipeline                 │
+│                                          │
+│  [HyDE] Ollama generates hypothetical    │
+│  answer → embed answer instead of query  │
+│  (optional, --hyde)                      │
+│                │                         │
+│                ▼                         │
+│  BM25 + Vector → RRF Fusion             │
+│  → Cross-Encoder Reranking              │
+│  → Parent Chunk Expansion               │
+└──────────────────────────────────────────┘
 ```
 
 ## Chunking

@@ -66,6 +66,30 @@ Rich terminal output for humans, `--json` for LLMs and scripts. Every command wo
 
 </div>
 
+<div class="iris-card" markdown>
+
+### Contextual Retrieval
+
+LLM-generated context prefixes improve retrieval by ~49%. Each chunk is enriched with a sentence describing where it fits in its document, using a local Ollama model.
+
+</div>
+
+<div class="iris-card" markdown>
+
+### HyDE Query Expansion
+
+Hypothetical Document Embeddings bridge the vocabulary gap between questions and answers. Ollama generates a plausible answer and that answer is embedded instead of the raw query.
+
+</div>
+
+<div class="iris-card" markdown>
+
+### GraphRAG
+
+A nano-graphrag knowledge graph extracts entities and relationships from your documents. Enables multi-hop queries that span related concepts across many files.
+
+</div>
+
 </div>
 
 ## Quick Example
