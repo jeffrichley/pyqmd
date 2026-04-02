@@ -15,10 +15,12 @@ class RetrievalPipeline:
         storage: StorageBackend,
         embedder: EmbeddingModel,
         reranker=None,
+        hyde_generator=None,
     ):
         self.storage = storage
         self.embedder = embedder
         self.reranker = reranker
+        self.hyde_generator = hyde_generator
 
     def search(
         self,
@@ -27,6 +29,7 @@ class RetrievalPipeline:
         top_k: int = 10,
         rerank: bool = True,
         expand_parent: bool = False,
+        hyde: bool = False,
     ) -> list[SearchResult]:
         """Search across collections using hybrid BM25+vector retrieval with RRF fusion.
 
@@ -36,12 +39,17 @@ class RetrievalPipeline:
             top_k: Maximum number of results to return.
             rerank: Whether to apply cross-encoder reranking (only if reranker is set).
             expand_parent: Whether to expand results to parent chunks for more context.
+            hyde: Whether to use HyDE (Hypothetical Document Embeddings) for the vector search.
 
         Returns:
             List of SearchResult objects sorted by descending score.
         """
-        # 1. Embed query
-        query_vector = self.embedder.embed([query])[0]
+        # 1. Embed query (optionally via HyDE)
+        if hyde and self.hyde_generator:
+            hypothetical = self.hyde_generator.generate_hypothetical(query)
+            query_vector = self.embedder.embed([hypothetical])[0]
+        else:
+            query_vector = self.embedder.embed([query])[0]
 
         # 2. Parallel BM25 + vector search across all collections
         all_bm25: list[tuple[str, float]] = []

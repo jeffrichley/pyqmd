@@ -35,10 +35,12 @@ class PyQMD:
         lancedb_dir = self.data_dir / "lancedb"
         self._storage = LanceDBBackend(data_dir=lancedb_dir, dimension=self._embedder.dimension)
 
-        # Reranker is lazy-loaded
+        # Reranker and Ollama-based features are lazy-loaded
         self._reranker = None
+        self._context_generator = None
+        self._hyde_generator = None
 
-    def _get_indexing_pipeline(self, collection_name: str) -> IndexingPipeline:
+    def _get_indexing_pipeline(self, collection_name: str, contextual: bool = False) -> IndexingPipeline:
         """Create an IndexingPipeline configured for the given collection."""
         col = self.config.collections.get(collection_name)
         if col is None:
@@ -49,11 +51,13 @@ class PyQMD:
             overlap=col.config.chunk_overlap,
         )
         hasher = FileHashRegistry(self.data_dir / "hashes" / f"{collection_name}.json")
+        context_gen = self._get_context_generator() if contextual else None
         return IndexingPipeline(
             storage=self._storage,
             embedder=self._embedder,
             chunker=chunker,
             hasher=hasher,
+            context_generator=context_gen,
         )
 
     def _get_reranker(self):
@@ -62,6 +66,27 @@ class PyQMD:
             from pyqmd.retrieval.rerank import CrossEncoderReranker
             self._reranker = CrossEncoderReranker()
         return self._reranker
+
+    def _get_context_generator(self, model: str = "qwen3.5:9b"):
+        """Lazy-load the Ollama context generator for contextual retrieval."""
+        if self._context_generator is None:
+            from pyqmd.indexing.contextual import OllamaContextGenerator
+            gen = OllamaContextGenerator(model=model)
+            if gen.is_available():
+                self._context_generator = gen
+            else:
+                from rich.console import Console
+                Console().print("[yellow]Ollama not available — indexing without contextual retrieval.[/yellow]")
+        return self._context_generator
+
+    def _get_hyde_generator(self, model: str = "qwen3.5:9b"):
+        """Lazy-load the HyDE generator for query-time expansion."""
+        if self._hyde_generator is None:
+            from pyqmd.retrieval.hyde import HyDEGenerator
+            gen = HyDEGenerator(model=model)
+            if gen.is_available():
+                self._hyde_generator = gen
+        return self._hyde_generator
 
     def add_collection(
         self,
@@ -107,30 +132,32 @@ class PyQMD:
         self,
         collection_name: str | None = None,
         force: bool = False,
+        contextual: bool = False,
     ) -> int:
         """Index one or all collections.
 
         Args:
             collection_name: Name of the collection to index, or None to index all.
             force: If True, re-index all files even if unchanged.
+            contextual: If True, generate context prefixes via Ollama before embedding.
 
         Returns:
             Total number of chunks indexed.
         """
         if collection_name is not None:
-            return self._index_one(collection_name, force=force)
+            return self._index_one(collection_name, force=force, contextual=contextual)
         total = 0
         for name in self.config.collections:
-            total += self._index_one(name, force=force)
+            total += self._index_one(name, force=force, contextual=contextual)
         return total
 
-    def _index_one(self, collection_name: str, force: bool = False) -> int:
+    def _index_one(self, collection_name: str, force: bool = False, contextual: bool = False) -> int:
         """Index a single collection."""
         col = self.config.collections.get(collection_name)
         if col is None:
             raise KeyError(f"Collection '{collection_name}' not found")
 
-        pipeline = self._get_indexing_pipeline(collection_name)
+        pipeline = self._get_indexing_pipeline(collection_name, contextual=contextual)
         total = 0
         for path_str in col.paths:
             directory = pathlib.Path(path_str)
@@ -152,6 +179,7 @@ class PyQMD:
         top_k: int = 10,
         rerank: bool = False,
         expand_parent: bool = False,
+        hyde: bool = False,
     ) -> list[SearchResult]:
         """Search across collections.
 
@@ -178,10 +206,12 @@ class PyQMD:
             return []
 
         reranker = self._get_reranker() if rerank else None
+        hyde_gen = self._get_hyde_generator() if hyde else None
         pipeline = RetrievalPipeline(
             storage=self._storage,
             embedder=self._embedder,
             reranker=reranker,
+            hyde_generator=hyde_gen,
         )
         return pipeline.search(
             query,
@@ -189,6 +219,7 @@ class PyQMD:
             top_k=top_k,
             rerank=rerank,
             expand_parent=expand_parent,
+            hyde=hyde,
         )
 
     def status(self, collection_name: str) -> dict:

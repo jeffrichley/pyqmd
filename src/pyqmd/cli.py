@@ -83,14 +83,16 @@ def list_collections(
 def index_collection(
     name: Annotated[Optional[str], typer.Argument(help="Collection name (omit to index all)")] = None,
     full: Annotated[bool, typer.Option("--full", help="Force re-index all files")] = False,
+    contextual: Annotated[bool, typer.Option("--contextual", help="Generate context via Ollama before embedding")] = False,
     data_dir: Annotated[str, typer.Option("--data-dir", help="Data directory")] = _DEFAULT_DATA_DIR,
 ) -> None:
     """Index one or all collections."""
     qmd = _get_qmd(data_dir)
     try:
-        count = qmd.index(collection_name=name, force=full)
+        count = qmd.index(collection_name=name, force=full, contextual=contextual)
         label = f"'{name}'" if name else "all collections"
-        console.print(f"[green]Indexed {label}: {count} chunks[/green]")
+        ctx_label = " (with contextual retrieval)" if contextual else ""
+        console.print(f"[green]Indexed {label}: {count} chunks{ctx_label}[/green]")
     except KeyError as e:
         err_console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(code=1)
@@ -103,6 +105,7 @@ def search(
     top_k: Annotated[int, typer.Option("--top-k", "-k", help="Number of results")] = 10,
     no_rerank: Annotated[bool, typer.Option("--no-rerank", help="Disable reranking")] = False,
     expand: Annotated[bool, typer.Option("--expand", help="Expand to parent chunks")] = False,
+    use_hyde: Annotated[bool, typer.Option("--hyde", help="Use HyDE query expansion via Ollama")] = False,
     as_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
     data_dir: Annotated[str, typer.Option("--data-dir", help="Data directory")] = _DEFAULT_DATA_DIR,
 ) -> None:
@@ -114,6 +117,7 @@ def search(
         top_k=top_k,
         rerank=not no_rerank and False,  # reranking disabled by default (slow model load)
         expand_parent=expand,
+        hyde=use_hyde,
     )
 
     if as_json:

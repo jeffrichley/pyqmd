@@ -1,6 +1,7 @@
 """Indexing pipeline: chunk files, embed, store."""
 
 import pathlib
+from typing import Optional
 
 from pyqmd.chunking.markdown import MarkdownChunker
 from pyqmd.embeddings.base import EmbeddingModel
@@ -15,11 +16,13 @@ class IndexingPipeline:
         embedder: EmbeddingModel,
         chunker: MarkdownChunker,
         hasher: FileHashRegistry,
+        context_generator: Optional["OllamaContextGenerator"] = None,
     ):
         self.storage = storage
         self.embedder = embedder
         self.chunker = chunker
         self.hasher = hasher
+        self.context_generator = context_generator
 
     def index_file(self, path: pathlib.Path, collection: str, force: bool = False) -> int:
         if not force and not self.hasher.has_changed(path):
@@ -28,6 +31,14 @@ class IndexingPipeline:
         chunks = self.chunker.chunk_file(path, collection=collection)
         if not chunks:
             return 0
+
+        # Generate contextual retrieval prefixes if available
+        if self.context_generator:
+            contexts = self.context_generator.generate_batch(chunks, show_progress=False)
+            for chunk, ctx in zip(chunks, contexts):
+                if ctx:
+                    chunk.context = ctx
+
         texts = [c.embeddable_content for c in chunks]
         vectors = self.embedder.embed(texts)
         self.storage.store(collection, list(zip(chunks, vectors)))
