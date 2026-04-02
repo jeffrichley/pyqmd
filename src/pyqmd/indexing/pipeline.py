@@ -129,18 +129,16 @@ class IndexingPipeline:
 
         self.observer.on_complete(f"Embedding {collection}", total=len(all_chunks))
 
-        # Phase 3: Store and update hashes
-        self.observer.on_start(f"Storing {collection}", total=len(file_boundaries))
+        # Phase 3: Store all chunks in one bulk insert, then update hashes
+        self.observer.on_start(f"Storing {collection} ({len(all_chunks)} chunks)", total=1)
 
         pairs = list(zip(all_chunks, all_vectors))
+        self.storage.store(collection, pairs)
+        self.observer.on_advance()
 
-        # Store in batches aligned to file boundaries for clean error recovery
-        for path, start_idx, end_idx in file_boundaries:
-            file_pairs = pairs[start_idx:end_idx]
-            if file_pairs:
-                self.storage.store(collection, file_pairs)
+        # Update hashes for all files
+        for path, _, _ in file_boundaries:
             self.hasher.record(path)
-            self.observer.on_advance()
 
         self.hasher.save()
         self.observer.on_complete(f"Storing {collection}", total=len(all_chunks))
