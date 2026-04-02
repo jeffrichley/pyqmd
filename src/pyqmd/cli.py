@@ -1,12 +1,13 @@
 """Typer CLI for pyqmd."""
 
 import json
+import logging
 import pathlib
 from typing import Annotated, Optional
 
 import typer
 from rich.console import Console
-from rich.table import Table
+from rich.logging import RichHandler
 
 from pyqmd.core import PyQMD
 
@@ -14,6 +15,7 @@ app = typer.Typer(
     name="qmd",
     help="pyqmd: Python-native local search engine for markdown files.",
     add_completion=False,
+    rich_markup_mode="rich",
 )
 graph_app = typer.Typer(help="Knowledge graph commands (GraphRAG).")
 app.add_typer(graph_app, name="graph")
@@ -22,6 +24,32 @@ console = Console()
 err_console = Console(stderr=True)
 
 _DEFAULT_DATA_DIR = str(pathlib.Path.home() / ".pyqmd")
+
+
+def setup_logging(verbose: bool = False, quiet: bool = False) -> None:
+    level = logging.DEBUG if verbose else (logging.WARNING if quiet else logging.INFO)
+    logging.basicConfig(
+        level=level,
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[
+            RichHandler(
+                rich_tracebacks=True,
+                tracebacks_show_locals=False,
+                show_path=verbose,
+                markup=True,
+            )
+        ],
+    )
+
+
+@app.callback()
+def main(
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug output"),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Suppress info output"),
+) -> None:
+    """pyqmd: Python-native local search engine for markdown files."""
+    setup_logging(verbose=verbose, quiet=quiet)
 
 
 def _get_qmd(data_dir: str) -> PyQMD:
@@ -66,6 +94,8 @@ def list_collections(
     data_dir: Annotated[str, typer.Option("--data-dir", help="Data directory")] = _DEFAULT_DATA_DIR,
 ) -> None:
     """List all collections."""
+    from rich.table import Table
+
     qmd = _get_qmd(data_dir)
     collections = qmd.list_collections()
 
@@ -284,6 +314,8 @@ def graph_status(
     data_dir: Annotated[str, typer.Option("--data-dir", help="Data directory")] = _DEFAULT_DATA_DIR,
 ) -> None:
     """Show knowledge graph status."""
+    from rich.table import Table
+
     engine = _get_graph_engine(data_dir)
     info = engine.status()
 
@@ -298,10 +330,10 @@ def graph_status(
         console.print(table)
 
 
-def main() -> None:
+def entry_point() -> None:
     """Entry point for the qmd CLI."""
     app()
 
 
 if __name__ == "__main__":
-    main()
+    entry_point()
