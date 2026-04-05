@@ -81,6 +81,10 @@ class LanceDBBackend(StorageBackend):
         table = self._get_or_create_table(collection)
         rows = [self._chunk_to_row(c, v) for c, v in chunks_with_vectors]
         table.add(rows)
+        try:
+            table.create_fts_index("content", replace=True)
+        except Exception:
+            pass  # FTS index creation can fail in some environments
 
     def search_vector(self, collection: str, query_vector: list[float], top_k: int = 10) -> list[tuple[str, float]]:
         table_name = self._table_name(collection)
@@ -96,7 +100,6 @@ class LanceDBBackend(StorageBackend):
             return []
         table = self.db.open_table(table_name)
         try:
-            table.create_fts_index("content", replace=True)
             results = table.search(query, query_type="fts").limit(top_k).to_list()
             return [(r["chunk_id"], float(r.get("_score", 0.0))) for r in results]
         except Exception:

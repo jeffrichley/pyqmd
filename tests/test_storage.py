@@ -84,3 +84,10 @@ class TestLanceDBBackend:
         collections = backend.list_collections()
         assert "col_a" in collections
         assert "col_b" in collections
+
+    def test_fts_index_created_on_store(self, backend, sample_chunks):
+        """FTS index should be created during store(), not on each search."""
+        backend.store("test", sample_chunks)
+        # search_text should work without needing to create the index itself
+        results = backend.search_text("test", "pandas dataframes", top_k=3)
+        assert isinstance(results, list)
