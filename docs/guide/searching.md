@@ -18,6 +18,9 @@ qmd search "query" --top-k 5
 # JSON output (for scripts and LLMs)
 qmd search "query" --json
 
+# Filter by file path
+qmd search "FRIDAY deadline" --path-prefix projects/niwc
+
 # Skip reranking (faster, less precise)
 qmd search "query" --no-rerank
 
@@ -82,4 +85,7 @@ results = qmd.search(
 for r in results:
     print(f"{r.score:.3f} | {r.chunk.source_file}")
     print(f"  {r.chunk.content[:200]}")
+
+# Filter results to a path prefix
+results = qmd.search("deadline", path_prefix="projects/niwc")
 ```

@@ -35,9 +35,16 @@ from pyqmd.progress import RichProgressObserver
 qmd.index("collection", observer=RichProgressObserver())
 ```
 
-#### `search(query, collections=None, top_k=10, rerank=False, expand_parents=False) -> list[SearchResult]`
+#### `search(query, collections=None, top_k=10, rerank=False, expand_parents=False, path_prefix=None, hyde=False) -> list[SearchResult]`
 
 Search across collections. Returns a list of `SearchResult` objects.
+
+- `path_prefix` — restrict results to files whose path starts with the given prefix.
+- `hyde` — generate a hypothetical answer via Ollama and embed that instead of the raw query.
+
+#### `watch(collection_name, debounce=None, poll_interval=None, ignore_patterns=None)`
+
+Watch a collection for filesystem changes and auto-index. Blocks until interrupted. Parameters override `[watch]` config values when provided.
 
 #### `status(name) -> dict`
 
@@ -46,8 +53,7 @@ Get status information for a collection.
 ## SearchResult
 
 ```python
-@dataclass
-class SearchResult:
+class SearchResult(BaseModel):
     chunk: Chunk
     score: float
     bm25_score: float | None
@@ -58,8 +64,7 @@ class SearchResult:
 ## Chunk
 
 ```python
-@dataclass
-class Chunk:
+class Chunk(BaseModel):
     id: str
     content: str
     context: str | None
@@ -70,6 +75,22 @@ class Chunk:
     start_line: int
     end_line: int
     metadata: dict
+```
+
+## WatchConfig
+
+```python
+class WatchConfig(BaseModel):
+    debounce: float = 1.0
+    poll_interval: float = 0.0
+    ignore_patterns: list[str] = ["*.tmp", ".git/**"]
+```
+
+## SearchConfig
+
+```python
+class SearchConfig(BaseModel):
+    overfetch_multiplier: float = 3.0
 ```
 
 ## ProgressObserver

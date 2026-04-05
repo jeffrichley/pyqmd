@@ -36,7 +36,7 @@ pyqmd uses a break-point scoring algorithm to find natural split points:
 | `#### H4` heading | 70 |
 | Blank line | 50 |
 
-Chunks target ~800 characters with 15% overlap. Code blocks and tables are never split.
+Chunks target ~800 characters by default with 15% overlap. Both values are configurable via `chunk_size` and `chunk_overlap` in `config.toml` (globally or per-collection). Code blocks and tables are never split.
 
 ## Contextual Retrieval
 

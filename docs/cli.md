@@ -54,6 +54,25 @@ Index a collection (or all collections). Use `--full` to force re-index.
 
 `--contextual` calls a local Ollama model once per chunk to generate a 1–2 sentence context prefix. This improves retrieval by ~49% at the cost of ~1 second per chunk at index time. Requires Ollama with `qwen3.5:9b` (or another configured model).
 
+## Watching
+
+### `qmd watch`
+
+```bash
+qmd watch <name> [--debounce FLOAT] [--poll-interval FLOAT] [--ignore PATTERN...]
+```
+
+Monitor a collection for file changes and auto-index.
+
+| Option | Description |
+|--------|-------------|
+| `--debounce` | Debounce window in seconds (overrides config) |
+| `--poll-interval` | Poll interval in seconds, 0=disabled (overrides config) |
+| `--ignore` | Additional ignore patterns (merged with config) |
+| `--data-dir` | Override data directory |
+
+Uses watchdog for OS-level filesystem events with an optional polling fallback. Configure defaults in `[watch]` in your `config.toml`.
+
 ## Searching
 
 ### `qmd search`
@@ -68,6 +87,7 @@ qmd search <query> [options]
 | `--top-k`, `-k` | Number of results (default: 10) |
 | `--no-rerank` | Skip cross-encoder reranking |
 | `--expand` | Include parent chunks |
+| `--path-prefix` | Restrict results to files under a given path |
 | `--hyde` | Use HyDE query expansion via Ollama |
 | `--json` | JSON output |
 | `--data-dir` | Override data directory |
