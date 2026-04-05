@@ -1,113 +1,96 @@
-from pyqmd.models import Chunk, SearchResult, Collection, CollectionConfig
+from pyqmd.models import (
+    Chunk,
+    Collection,
+    CollectionConfig,
+    SearchConfig,
+    SearchResult,
+    WatchConfig,
+)
 
 
-class TestChunk:
-    def test_create_chunk(self):
-        chunk = Chunk(
-            id="abc123",
-            content="Hello world",
-            context=None,
-            source_file="/path/to/file.md",
-            collection="notes",
-            heading_path=["H1 Title", "H2 Section"],
-            parent_id=None,
-            start_line=1,
-            end_line=10,
-            metadata={},
-        )
-        assert chunk.id == "abc123"
-        assert chunk.content == "Hello world"
-        assert chunk.context is None
-        assert chunk.heading_path == ["H1 Title", "H2 Section"]
+class TestCollectionConfig:
+    def test_defaults(self):
+        cfg = CollectionConfig()
+        assert cfg.mask == "**/*.md"
+        assert cfg.chunk_size is None
+        assert cfg.chunk_overlap is None
+        assert cfg.embed_model is None
 
-    def test_chunk_with_context(self):
-        chunk = Chunk(
-            id="abc123",
-            content="Use the --no-cache flag.",
-            context="This section describes CLI flags for the build tool.",
-            source_file="/path/to/file.md",
-            collection="notes",
-            heading_path=[],
-            parent_id="parent1",
-            start_line=5,
-            end_line=8,
-            metadata={"project": "Martingale"},
-        )
-        assert chunk.context == "This section describes CLI flags for the build tool."
-        assert chunk.parent_id == "parent1"
-        assert chunk.metadata["project"] == "Martingale"
-
-    def test_chunk_content_for_embedding_without_context(self):
-        chunk = Chunk(
-            id="abc123",
-            content="Hello world",
-            context=None,
-            source_file="/path/to/file.md",
-            collection="notes",
-            heading_path=[],
-            parent_id=None,
-            start_line=1,
-            end_line=1,
-            metadata={},
-        )
-        assert chunk.embeddable_content == "Hello world"
-
-    def test_chunk_content_for_embedding_with_context(self):
-        chunk = Chunk(
-            id="abc123",
-            content="Use the --no-cache flag.",
-            context="This section describes CLI flags.",
-            source_file="/path/to/file.md",
-            collection="notes",
-            heading_path=[],
-            parent_id=None,
-            start_line=1,
-            end_line=1,
-            metadata={},
-        )
-        assert chunk.embeddable_content == "This section describes CLI flags.\n\nUse the --no-cache flag."
+    def test_override(self):
+        cfg = CollectionConfig(chunk_size=1600)
+        assert cfg.chunk_size == 1600
 
 
-class TestSearchResult:
-    def test_create_search_result(self):
-        chunk = Chunk(
-            id="abc123",
-            content="test",
-            context=None,
-            source_file="test.md",
-            collection="notes",
-            heading_path=[],
-            parent_id=None,
-            start_line=1,
-            end_line=1,
-            metadata={},
-        )
-        result = SearchResult(
-            chunk=chunk,
-            score=0.85,
-            bm25_score=0.7,
-            vector_score=0.9,
-            rerank_score=None,
-        )
-        assert result.score == 0.85
-        assert result.bm25_score == 0.7
-        assert result.rerank_score is None
+class TestWatchConfig:
+    def test_defaults(self):
+        cfg = WatchConfig()
+        assert cfg.debounce == 2.0
+        assert cfg.poll_interval == 0.0
+        assert ".git/" in cfg.ignore_patterns
+
+    def test_override(self):
+        cfg = WatchConfig(debounce=5.0, ignore_patterns=[".git/"])
+        assert cfg.debounce == 5.0
+        assert cfg.ignore_patterns == [".git/"]
+
+
+class TestSearchConfig:
+    def test_defaults(self):
+        cfg = SearchConfig()
+        assert cfg.overfetch_multiplier == 2
 
 
 class TestCollection:
-    def test_create_collection(self):
-        config = CollectionConfig()
-        collection = Collection(
-            name="notes",
-            paths=["/home/user/notes"],
-            mask="**/*.md",
-            config=config,
-        )
-        assert collection.name == "notes"
-        assert collection.mask == "**/*.md"
+    def test_defaults(self):
+        col = Collection(name="test", paths=["/tmp"])
+        assert col.mask == "**/*.md"
+        assert col.chunk_size == 800
+        assert col.chunk_overlap == 0.15
 
-    def test_collection_config_defaults(self):
-        config = CollectionConfig()
-        assert config.chunk_size == 800
-        assert config.chunk_overlap == 0.15
-        assert config.embed_model == "all-MiniLM-L6-v2"
+    def test_override(self):
+        col = Collection(name="test", paths=["/tmp"], chunk_size=1600)
+        assert col.chunk_size == 1600
+
+
+class TestChunk:
+    def test_embeddable_content_without_context(self):
+        chunk = Chunk(
+            id="abc",
+            content="Hello world",
+            source_file="test.md",
+            collection="test",
+        )
+        assert chunk.embeddable_content == "Hello world"
+
+    def test_embeddable_content_with_context(self):
+        chunk = Chunk(
+            id="abc",
+            content="Hello world",
+            context="This is context",
+            source_file="test.md",
+            collection="test",
+        )
+        assert chunk.embeddable_content == "This is context\n\nHello world"
+
+    def test_mutable_context(self):
+        chunk = Chunk(
+            id="abc",
+            content="Hello",
+            source_file="test.md",
+            collection="test",
+        )
+        chunk.context = "new context"
+        assert chunk.context == "new context"
+
+
+class TestSearchResult:
+    def test_basic(self):
+        chunk = Chunk(
+            id="abc",
+            content="Hello",
+            source_file="test.md",
+            collection="test",
+        )
+        result = SearchResult(chunk=chunk, score=0.95)
+        assert result.score == 0.95
+        assert result.bm25_score is None
