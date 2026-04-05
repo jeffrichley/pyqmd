@@ -182,6 +182,7 @@ class PyQMD:
         rerank: bool = False,
         expand_parent: bool = False,
         hyde: bool = False,
+        path_prefix: str | None = None,
     ) -> list[SearchResult]:
         """Search across collections.
 
@@ -191,6 +192,7 @@ class PyQMD:
             top_k: Maximum number of results to return.
             rerank: Whether to apply cross-encoder reranking.
             expand_parent: Whether to expand results to parent chunks.
+            path_prefix: If set, only return results from files whose path contains this prefix.
 
         Returns:
             List of SearchResult objects sorted by descending score.
@@ -222,6 +224,8 @@ class PyQMD:
             rerank=rerank,
             expand_parent=expand_parent,
             hyde=hyde,
+            path_prefix=path_prefix,
+            overfetch_multiplier=self.config.search.overfetch_multiplier,
         )
 
     def status(self, collection_name: str) -> dict:

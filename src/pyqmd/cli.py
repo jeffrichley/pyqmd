@@ -136,6 +136,7 @@ def search(
     query: Annotated[str, typer.Argument(help="Search query")],
     collection: Annotated[Optional[list[str]], typer.Option("--collection", "-c", help="Collection to search")] = None,
     top_k: Annotated[int, typer.Option("--top-k", "-k", help="Number of results")] = 10,
+    path_prefix: Annotated[Optional[str], typer.Option("--path-prefix", help="Filter results to files under this path prefix")] = None,
     no_rerank: Annotated[bool, typer.Option("--no-rerank", help="Disable reranking")] = False,
     expand: Annotated[bool, typer.Option("--expand", help="Expand to parent chunks")] = False,
     use_hyde: Annotated[bool, typer.Option("--hyde", help="Use HyDE query expansion via Ollama")] = False,
@@ -151,6 +152,7 @@ def search(
         rerank=not no_rerank and False,  # reranking disabled by default (slow model load)
         expand_parent=expand,
         hyde=use_hyde,
+        path_prefix=path_prefix,
     )
 
     if as_json:
