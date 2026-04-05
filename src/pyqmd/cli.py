@@ -231,6 +231,28 @@ def show_config(
         console.print(f"[bold]Collections:[/bold] {', '.join(info['collections']) or '(none)'}")
 
 
+@app.command("watch")
+def watch_collection(
+    name: Annotated[str, typer.Argument(help="Collection name to watch")],
+    debounce: Annotated[Optional[float], typer.Option("--debounce", help="Debounce window in seconds")] = None,
+    poll_interval: Annotated[Optional[float], typer.Option("--poll-interval", help="Poll interval in seconds (0=disabled)")] = None,
+    ignore: Annotated[Optional[list[str]], typer.Option("--ignore", help="Additional ignore patterns")] = None,
+    data_dir: Annotated[str, typer.Option("--data-dir", help="Data directory")] = _DEFAULT_DATA_DIR,
+) -> None:
+    """Watch a collection for file changes and auto-index."""
+    qmd = _get_qmd(data_dir)
+    try:
+        qmd.watch(
+            name,
+            debounce=debounce,
+            poll_interval=poll_interval,
+            ignore_patterns=ignore,
+        )
+    except KeyError as e:
+        err_console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(code=1)
+
+
 # ── Graph commands ────────────────────────────────────────────
 
 

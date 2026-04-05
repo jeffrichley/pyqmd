@@ -228,6 +228,61 @@ class PyQMD:
             overfetch_multiplier=self.config.search.overfetch_multiplier,
         )
 
+    def watch(
+        self,
+        collection_name: str,
+        debounce: float | None = None,
+        poll_interval: float | None = None,
+        ignore_patterns: list[str] | None = None,
+    ) -> None:
+        """Watch a collection's directory for changes and auto-index.
+
+        Args:
+            collection_name: Name of the collection to watch.
+            debounce: Seconds to wait after last change (overrides config).
+            poll_interval: Seconds between polls, 0 to disable (overrides config).
+            ignore_patterns: Additional ignore patterns (merged with config).
+        """
+        from pyqmd.watch import WatchService
+
+        col = self.config.collections.get(collection_name)
+        if col is None:
+            raise KeyError(f"Collection '{collection_name}' not found")
+
+        watch_cfg = self.config.watch
+        effective_debounce = debounce if debounce is not None else watch_cfg.debounce
+        effective_poll = poll_interval if poll_interval is not None else watch_cfg.poll_interval
+        effective_ignore = list(watch_cfg.ignore_patterns)
+        if ignore_patterns:
+            effective_ignore.extend(ignore_patterns)
+
+        directory = pathlib.Path(col.paths[0])
+        pipeline = self._get_indexing_pipeline(collection_name)
+
+        def index_fn(file_list: list[pathlib.Path]) -> int:
+            """Index a list of changed files."""
+            total = 0
+            for path in file_list:
+                total += pipeline.index_file(path, collection=collection_name)
+            return total
+
+        def poll_fn() -> list[pathlib.Path]:
+            """Check all files for changes via hash comparison."""
+            files = sorted(directory.glob(col.mask))
+            return [f for f in files if f.is_file() and pipeline.hasher.has_changed(f)]
+
+        service = WatchService(
+            collection_name=collection_name,
+            directory=directory,
+            mask=col.mask,
+            index_fn=index_fn,
+            poll_fn=poll_fn if effective_poll > 0 else None,
+            debounce=effective_debounce,
+            poll_interval=effective_poll,
+            ignore_patterns=effective_ignore,
+        )
+        service.run()
+
     def status(self, collection_name: str) -> dict:
         """Return status information for a collection.
 
