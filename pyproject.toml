@@ -13,6 +13,9 @@ dependencies = [
     "pyyaml>=6.0",
     "pyarrow>=14.0.0",
     "nano-graphrag>=0.0.8.2",
+    "pydantic>=2.0",
+    "tomli-w>=1.0.0",
+    "watchdog>=3.0.0",
 ]
 
 [project.optional-dependencies]
