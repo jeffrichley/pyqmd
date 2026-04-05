@@ -47,8 +47,8 @@ class PyQMD:
             raise KeyError(f"Collection '{collection_name}' not found")
 
         chunker = MarkdownChunker(
-            target_size=col.config.chunk_size,
-            overlap=col.config.chunk_overlap,
+            target_size=col.chunk_size,
+            overlap=col.chunk_overlap,
         )
         hasher = FileHashRegistry(self.data_dir / "hashes" / f"{collection_name}.json")
         context_gen = self._get_context_generator() if contextual else None
@@ -246,5 +246,5 @@ class PyQMD:
             "chunk_count": chunk_count,
             "paths": col.paths,
             "mask": col.mask,
-            "embed_model": col.config.embed_model,
+            "embed_model": col.embed_model,
         }

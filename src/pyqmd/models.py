@@ -31,11 +31,7 @@ class CollectionConfig(BaseModel):
 
 
 class Collection(BaseModel):
-    """A named group of directories to index.
-
-    This is the runtime representation used throughout the codebase.
-    CollectionConfig is the serialized TOML representation.
-    """
+    """A named group of directories to index."""
 
     name: str
     paths: list[str]
