@@ -83,6 +83,7 @@ New module: `src/pyqmd/watch.py` containing `WatchService`.
 ### Behavior
 
 **Dual-mode detection:**
+
 - **Filesystem events (default)**: `watchdog` observer watches the collection directory recursively. On file create/modify/delete events, affected paths are added to a pending set.
 - **Polling fallback**: When `poll_interval > 0`, a periodic scan runs using `FileHashRegistry.has_changed()` on all files matching the collection's mask. Catches changes that filesystem watchers miss (network drives, mounted volumes, edge cases).
 - Both modes can run simultaneously.
