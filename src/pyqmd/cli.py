@@ -3,7 +3,7 @@
 import json
 import logging
 import pathlib
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -114,7 +114,7 @@ def list_collections(
 
 @app.command("index")
 def index_collection(
-    name: Annotated[Optional[str], typer.Argument(help="Collection name (omit to index all)")] = None,
+    name: Annotated[str | None, typer.Argument(help="Collection name (omit to index all)")] = None,
     full: Annotated[bool, typer.Option("--full", help="Force re-index all files")] = False,
     contextual: Annotated[bool, typer.Option("--contextual", help="Generate context via Ollama before embedding")] = False,
     data_dir: Annotated[str, typer.Option("--data-dir", help="Data directory")] = _DEFAULT_DATA_DIR,
@@ -134,9 +134,9 @@ def index_collection(
 @app.command("search")
 def search(
     query: Annotated[str, typer.Argument(help="Search query")],
-    collection: Annotated[Optional[list[str]], typer.Option("--collection", "-c", help="Collection to search")] = None,
+    collection: Annotated[list[str] | None, typer.Option("--collection", "-c", help="Collection to search")] = None,
     top_k: Annotated[int, typer.Option("--top-k", "-k", help="Number of results")] = 10,
-    path_prefix: Annotated[Optional[str], typer.Option("--path-prefix", help="Filter results to files under this path prefix")] = None,
+    path_prefix: Annotated[str | None, typer.Option("--path-prefix", help="Filter results to files under this path prefix")] = None,
     no_rerank: Annotated[bool, typer.Option("--no-rerank", help="Disable reranking")] = False,
     expand: Annotated[bool, typer.Option("--expand", help="Expand to parent chunks")] = False,
     use_hyde: Annotated[bool, typer.Option("--hyde", help="Use HyDE query expansion via Ollama")] = False,
@@ -234,9 +234,9 @@ def show_config(
 @app.command("watch")
 def watch_collection(
     name: Annotated[str, typer.Argument(help="Collection name to watch")],
-    debounce: Annotated[Optional[float], typer.Option("--debounce", help="Debounce window in seconds")] = None,
-    poll_interval: Annotated[Optional[float], typer.Option("--poll-interval", help="Poll interval in seconds (0=disabled)")] = None,
-    ignore: Annotated[Optional[list[str]], typer.Option("--ignore", help="Additional ignore patterns")] = None,
+    debounce: Annotated[float | None, typer.Option("--debounce", help="Debounce window in seconds")] = None,
+    poll_interval: Annotated[float | None, typer.Option("--poll-interval", help="Poll interval in seconds (0=disabled)")] = None,
+    ignore: Annotated[list[str] | None, typer.Option("--ignore", help="Additional ignore patterns")] = None,
     data_dir: Annotated[str, typer.Option("--data-dir", help="Data directory")] = _DEFAULT_DATA_DIR,
 ) -> None:
     """Watch a collection for file changes and auto-index."""
@@ -267,8 +267,8 @@ def _get_graph_engine(data_dir: str, best_model: str = "qwen3:14b", cheap_model:
 
 @graph_app.command("build")
 def graph_build(
-    directory: Annotated[Optional[str], typer.Argument(help="Directory of markdown files to index. Omit to use all collections.")] = None,
-    collection: Annotated[Optional[str], typer.Option("--collection", "-c", help="Collection name to build graph from")] = None,
+    directory: Annotated[str | None, typer.Argument(help="Directory of markdown files to index. Omit to use all collections.")] = None,
+    collection: Annotated[str | None, typer.Option("--collection", "-c", help="Collection name to build graph from")] = None,
     best_model: Annotated[str, typer.Option("--best-model", help="Ollama model for entity extraction")] = "qwen3:14b",
     cheap_model: Annotated[str, typer.Option("--cheap-model", help="Ollama model for summaries")] = "llama3.2",
     data_dir: Annotated[str, typer.Option("--data-dir", help="Data directory")] = _DEFAULT_DATA_DIR,
