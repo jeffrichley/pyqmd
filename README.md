@@ -1,7 +1,7 @@
 # pyqmd
 
 [![CI](https://github.com/jeffrichley/pyqmd/actions/workflows/ci.yml/badge.svg)](https://github.com/jeffrichley/pyqmd/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/jeffrichley/pyqmd/branch/main/graph/badge.svg)](https://codecov.io/gh/jeffrichley/pyqmd)
+[![codecov](https://codecov.io/gh/jeffrichley/pyqmd/branch/master/graph/badge.svg)](https://codecov.io/gh/jeffrichley/pyqmd)
 [![PyPI](https://img.shields.io/pypi/v/pyqmd.svg)](https://pypi.org/project/pyqmd/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
