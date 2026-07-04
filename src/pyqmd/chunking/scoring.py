@@ -3,7 +3,6 @@
 import re
 from dataclasses import dataclass
 
-
 BREAK_SCORES: dict[str, int] = {
     "h1": 100,
     "h2": 90,

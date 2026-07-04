@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .venv/
 site/
+
+# Coverage artifacts
+.coverage
+coverage.xml

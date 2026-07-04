@@ -59,8 +59,13 @@ class RichProgressObserver:
 
     def _make_progress(self):
         from rich.progress import (
-            Progress, SpinnerColumn, TextColumn, BarColumn,
-            MofNCompleteColumn, TimeElapsedColumn, TimeRemainingColumn,
+            BarColumn,
+            MofNCompleteColumn,
+            Progress,
+            SpinnerColumn,
+            TextColumn,
+            TimeElapsedColumn,
+            TimeRemainingColumn,
         )
         return Progress(
             SpinnerColumn(),

@@ -7,7 +7,6 @@ from pyqmd.chunking.frontmatter import parse_frontmatter
 from pyqmd.chunking.scoring import (
     CODE_FENCE_PATTERN,
     HEADING_PATTERN,
-    BreakPoint,
     score_line,
 )
 from pyqmd.models import Chunk

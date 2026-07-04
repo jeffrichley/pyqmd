@@ -1,6 +1,7 @@
 """Abstract storage backend interface."""
 
 from abc import ABC, abstractmethod
+
 from pyqmd.models import Chunk
 
 

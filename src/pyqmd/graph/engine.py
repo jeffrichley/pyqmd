@@ -5,23 +5,20 @@ entities and relationships via a local Ollama model. Supports both
 global and local graph queries.
 """
 
-import asyncio
 import pathlib
-from typing import Optional
 
 import httpx
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
-
 from nano_graphrag import GraphRAG, QueryParam
 from nano_graphrag._utils import EmbeddingFunc
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
 console = Console()
 
 
 async def _ollama_complete(
     prompt: str,
-    system_prompt: Optional[str] = None,
+    system_prompt: str | None = None,
     history_messages: list = [],
     **kwargs,
 ) -> str:
@@ -120,7 +117,9 @@ class GraphEngine:
                 kwargs["base_url"] = self.ollama_url
                 return await _ollama_complete(prompt, system_prompt, history_messages, **kwargs)
 
-            from pyqmd.embeddings.sentence_transformers import SentenceTransformerEmbedding
+            from pyqmd.embeddings.sentence_transformers import (
+                SentenceTransformerEmbedding,
+            )
             embedder = SentenceTransformerEmbedding()
 
             self._graph = GraphRAG(

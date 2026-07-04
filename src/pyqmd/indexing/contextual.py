@@ -78,7 +78,15 @@ class OllamaContextGenerator:
         show_progress: bool = True,
     ) -> list[str]:
         """Generate context for a batch of chunks. Returns list of context strings."""
-        from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, MofNCompleteColumn, TimeElapsedColumn, TimeRemainingColumn
+        from rich.progress import (
+            BarColumn,
+            MofNCompleteColumn,
+            Progress,
+            SpinnerColumn,
+            TextColumn,
+            TimeElapsedColumn,
+            TimeRemainingColumn,
+        )
 
         contexts = []
 
